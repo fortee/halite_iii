@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 
 from .common import read_input
@@ -24,8 +25,11 @@ class Game:
 
         num_players, self.my_id = map(int, read_input().split())
 
+        # Changing halite code for logging, as I don't like logs polluting my top-level directory.
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
         logging.basicConfig(
-            filename="bot-{}.log".format(self.my_id),
+            filename="logs/bot-{}.log".format(self.my_id),
             filemode="w",
             level=logging.DEBUG,
         )

@@ -70,6 +70,11 @@ fabric.properties
 .DS_Store
 
 
+# python stuff
+**/__pycache__/*
+
+
 # Halite 3 stuff
 downloads/*
 replays/*
+logs/*
