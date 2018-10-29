@@ -17,6 +17,7 @@ import random
 #   (print statements) are reserved for the engine-bot communication.
 import logging
 
+
 """ <<<Game Begin>>> """
 
 # This game object contains the initial game state.
@@ -61,4 +62,3 @@ while True:
 
     # Send your moves back to the game environment, ending this turn.
     game.end_turn(command_queue)
-
