@@ -7,9 +7,9 @@ Using PyCharm for a project like this is a little clunky, but I think
 the overhead is worth it. I came up with the following flow:
 
 File structure:
-`IncumbentBot.py` The challenger bot I'm trying to beat
-`MyBot.py` The bot I'm currently working on / submitting
-`DebugMyBot.py` Debugging wrapper around `MyBot.py`
+- `IncumbentBot.py` The challenger bot I'm trying to beat
+- `MyBot.py` The bot I'm currently working on / submitting
+- `DebugMyBot.py` Debugging wrapper around `MyBot.py`
 
 copy `run_game.sh` to `debug_game.sh`. Modify `debug_game.sh` so it
 looks like so:
