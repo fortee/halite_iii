@@ -3,20 +3,12 @@
 
 # Import the Halite SDK, which will let you interact with the game.
 import hlt
-
-# This library contains constant values.
-from hlt import constants
-
-# This library contains direction metadata to better interface with the game.
-from hlt.positionals import Direction
-
-# This library allows you to generate random numbers.
+import logging
 import random
 
-# Logging allows you to save messages for yourself. This is required because the regular STDOUT
-#   (print statements) are reserved for the engine-bot communication.
-import logging
-
+from hlt import constants
+from hlt.positionals import Direction, Position
+from random import randint
 
 """ <<<Game Begin>>> """
 
@@ -42,6 +34,10 @@ def log_state(me, game_map):
     for ship in ships:
         logging.info({ship})
 
+def assign_target(game_map):
+    x, y = randint(0, game_map.height), randint(0, game_map.width)
+    return Position(x, y)
+
 ship_values = {}
 
 while True:
@@ -58,7 +54,10 @@ while True:
 
     for ship in my_ships:
         if ship.id not in ship_values:
-            ship_values[ship.id] = {'seeking_home': False}
+            ship_values[ship.id] = {
+                'seeking_home': False,
+                'target': assign_target(game_map=game_map)
+            }
         # For each of your ships, move randomly if the ship is on a low halite location or the ship is full.
         #   Else, collect halite.
         if ship.is_full and not ship_values[ship.id]['seeking_home']:
@@ -70,15 +69,20 @@ while True:
         elif ship_values[ship.id]['seeking_home'] and ship.position == shipyard.position:
             logging.info(f"ship {ship.id} has reached the shipyard. No longer seeking it")
             ship_values[ship.id]['seeking_home'] = False
-            # Move in a random dir
-            command_queue.append(ship.move(random.choice([Direction.North, Direction.South, Direction.East, Direction.West])))
+            ship_values[ship.id]['target'] = assign_target(game_map=game_map)
+
+            # Seek target again
+            logging.info(f"ship {ship.id} seeking target of {ship_values[ship.id]['target']}")
+            direction = game_map.naive_navigate(ship, ship_values[ship.id]['target'])
+            command_queue.append(ship.move(direction))
         elif ship_values[ship.id]['seeking_home']:
             logging.info(f"ship {ship.id} is continuing to seek shipyard at {shipyard.position}")
             direction = game_map.naive_navigate(ship, shipyard.position)
             command_queue.append(ship.move(direction))
         elif game_map[ship.position].halite_amount < constants.MAX_HALITE / 10:
-            # Move in a random dir
-            command_queue.append(ship.move(random.choice([ Direction.North, Direction.South, Direction.East, Direction.West ])))
+            logging.info(f"ship {ship.id} seeking target of {ship_values[ship.id]['target']}")
+            direction = game_map.naive_navigate(ship, ship_values[ship.id]['target'])
+            command_queue.append(ship.move(direction))
         else:
             command_queue.append(ship.stay_still())
 
