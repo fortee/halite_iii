@@ -75,6 +75,7 @@ fabric.properties
 
 
 # Halite 3 stuff
+debug_replays/*
 downloads/*
 replays/*
 logs/*

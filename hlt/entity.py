@@ -54,6 +54,8 @@ class Ship(Entity):
         super().__init__(owner, id, position)
         self.halite_amount = halite_amount
 
+        self.seeking_shipyard = False
+
     @property
     def is_full(self):
         """Is this ship at max halite capacity?"""
