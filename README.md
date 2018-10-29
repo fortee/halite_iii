@@ -1,29 +1,59 @@
-# Starter Kit
+### Halite III
 
-## Halite III starter kit components
-* MyBot.{extension}, a starter bot outline
-* /hlt directory, which contains modifiable helper functions for your bot
-* A Halite executable that enables local playtesting of your bot
-* The scripts run_game.bat (Windows) and run_game.sh (MacOS, Linux)
+See [halite.io](http://halite.io/) for details. I'll document my way as the competition progresses
 
-## Testing your bot locally
-* Run run_game.bat (Windows) and run_game.sh (MacOS, Linux) to run a game of Halite III. By default, these scripts run a game of your MyBot.py bot vs. itself.  You can modify the board size, map seed, and the opponents of test games using the CLI.
+### Debug setup
+Using PyCharm for a project like this is a little clunky, but I think
+the overhead is worth it. I came up with the following flow:
 
-## CLI
-The Halite executable comes with a command line interface (CLI). Run `$ ./halite --help` to see a full listing of available flags.
+File structure:
+`IncumbentBot.py` The challenger bot I'm trying to beat
+`MyBot.py` The bot I'm currently working on / submitting
+`DebugMyBot.py` Debugging wrapper around `MyBot.py`
 
-## Submitting your bot
-* Zip your MyBot.{extension} file and /hlt directory together.
-* Submit your zipped file here: https://halite.io/play-programming-challenge
+copy `run_game.sh` to `debug_game.sh`. Modify `debug_game.sh` so it
+looks like so:
+```
+#!/bin/sh
 
-## Compiling your bot on our game servers
-* Your bot has `10 minutes` to install dependencies and compile on the game server.
-* You can run custom commands to set up your bot by including an `install.sh` file alongside `MyBot.{ext}`. This file will be executed and should be a Bash shell script. You must include the shebang line at the top: `#!/bin/bash`.
-  * For Python, you may install packages using pip, but you may not install to the global package directory. Instead, install packages as follows: `python3.6 -m pip install --system --target . numpy`
-* Some languages don't use the `MyBot.{ext}` convention. Exceptions include:
-  * Rust: a Cargo.toml in the root will be detected as Rust. Your bot will compile with `cargo rustc`.
-  * Swift: a Package.swift in the root will be detected as Swift. Your bot will compile with `swift build`.
-  * Haskell: You may upload a MyBot.hs, or you may upload a `stack.yaml`, in which case your bot will compile with `stack build`.
-  * Elixir: Upload a mix.exs. Your bot will compile with `mix deps.get` followed by `mix escript.build`.
-  * Clojure: Upload a project.clj. Your bot will compile with `lein uberjar`.
-  * .NET: Upload a MyBot.csproj or MyBot.fsproj. Your bot will compile with `dotnet restore` followed with `dotnet build`.
+./halite --no-timeout --replay-directory replays/ -vvv --width 32 --height 32 "python3 DebugMyBot.py" "python3 IncumbentBot.py"
+```
+
+In PyCharm we need to figure a remote debugger.
+
+Goto Edit Configurations > Click + > Python Remote Debug
+Change the port to port 2222.
+
+Create file `DebugMyBot.py`. The entire contents are the following:
+```.py
+#!/usr/bin/env python3
+# Python 3.6
+
+# For remote debugging...
+import pydevd
+pydevd.settrace('localhost', port=2222, stdoutToServer=True, stderrToServer=True)
+
+import MyBot
+```
+
+This allows us to debug `MyBot.py` via `DebugMyBot.py`. Running `MyBot.py` directly without the debugger no
+longer requires us to comment out the `pydevd` code
+
+#### Modifications to halite code:
+
+The default halite setup was logging to the top-level directory, driving me nuts.
+I modified `network.py` from the starter kit to do the following:
+
+```.py
+import os
+
+...
+
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+logging.basicConfig(
+    filename="logs/bot-{}.log".format(self.my_id),
+    filemode="w",
+    level=logging.DEBUG,
+)
+```
