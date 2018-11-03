@@ -6,6 +6,7 @@ class Graph:
 	def add_node(self, node):
 		pass
 
+
 class Node:
 	def __init__(self, value):
 		self._value = value
