@@ -37,6 +37,7 @@ class Game:
         self.players = {}
         for player in range(num_players):
             self.players[player] = Player._generate()
+
         self.me = self.players[self.my_id]
         self.game_map = GameMap._generate()
 
