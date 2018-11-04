@@ -1,5 +1,4 @@
 import logging
-import sys
 
 
 class Graph:
@@ -14,6 +13,12 @@ class Graph:
             s += f"\t{nid}: {[n for n in node.get_neighbors()]}\n"
 
         return s
+
+    def __eq__(self, other):
+        if isinstance(other, Graph):
+            return self._node_count == other._node_count and self._nodes == other._nodes
+
+        return False
 
     def add_node(self, value):  # Does this prevent me from having the same value on a node???
         node = _Node(value)
@@ -58,6 +63,12 @@ class _Node:
 
     def get_weight(self, neighbor):
         return self._neighbors[neighbor]
+
+    def __eq__(self, other):
+        if isinstance(other, _Node):
+            return self.value == other.value and self._neighbors == other._neighbors
+
+        return False
 
 
 class SimpleGraphException(Exception):

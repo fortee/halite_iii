@@ -1,10 +1,13 @@
 import queue
+import logging
+import time
 
 from . import constants
 from .entity import Entity, Shipyard, Ship, Dropoff
 from .player import Player
 from .positionals import Direction, Position
 from .common import read_input
+from simple_graph import Graph
 
 
 class MapCell:
@@ -193,3 +196,40 @@ class GameMap:
         for _ in range(int(read_input())):
             cell_x, cell_y, cell_energy = map(int, read_input().split())
             self[Position(cell_x, cell_y)].halite_amount = cell_energy
+
+    def to_graph(self):
+        """
+        Translate game_map cells to a Graph, where the weight represent the cost of stepping from
+        the node to the neighbor.
+
+        :return: simple_graph.Graph
+        """
+        tic = time.perf_counter()
+        g = Graph()
+
+        # NB: We're iterating through twice, as simple_graph.Graph requires src and dest nodes to already exist
+        # when appending an edge.
+        for c, _ in enumerate(self._cells):
+            for r, cell in enumerate(self._cells[c]):
+                g.add_node(cell.position)
+
+        for c, _ in enumerate(self._cells):
+            for r, cell in enumerate(self._cells[c]):
+                src = Position(c, r)
+                cost = cell.halite_amount / 10.0
+                # c-1, r+0
+                if c-1 >= 0 and c-1 < self.height:
+                    g.add_edge(src, Position(c-1, r), cost)
+                # c+0, r+1
+                if r+1 >= 0 and r+1 < self.width:
+                    g.add_edge(src, Position(c, r+1), cost)
+                # c+1, r+0
+                if c+1 >= 0 and c+1 < self.height:
+                    g.add_edge(src, Position(c+1, r), cost)
+                # c+0, r-1
+                if r-1 >= 0 and r-1 < self.width:
+                    g.add_edge(src, Position(c, r-1), cost)
+
+        toc = time.perf_counter()
+        logging.info(f"Translating game_map to graph took dt={toc-tic} seconds.")
+        return  g

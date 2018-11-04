@@ -38,22 +38,3 @@ import MyBot
 
 This allows us to debug `MyBot.py` via `DebugMyBot.py`. Running `MyBot.py` directly without the debugger no
 longer requires us to comment out the `pydevd` code
-
-#### Modifications to halite code:
-
-The default halite setup was logging to the top-level directory, driving me nuts.
-I modified `network.py` from the starter kit to do the following:
-
-```.py
-import os
-
-...
-
-if not os.path.exists('logs'):
-    os.makedirs('logs')
-logging.basicConfig(
-    filename="logs/bot-{}.log".format(self.my_id),
-    filemode="w",
-    level=logging.DEBUG,
-)
-```
