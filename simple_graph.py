@@ -8,12 +8,18 @@ class Graph:
         self._node_count = 0
 
     def __repr__(self):
-        return repr([node for _, node in self._nodes.items()]
+        # return repr(self._nodes["A"])
+        s = f"Graph object:\n"
+        for nid, node in self._nodes.items():
+            s += f"\t{nid}: {[n for n in node.get_neighbors()]}\n"
+
+        return s
 
     def add_node(self, value):  # Does this prevent me from having the same value on a node???
         node = _Node(value)
         self._nodes[value] = node
         self._node_count += 1
+
         return node
 
     def add_edge(self, src, dest, weight):
@@ -30,41 +36,29 @@ class Graph:
         if value not in self._nodes.keys():
             raise SimpleGraphException(f"value={value} not in graph!")
 
+        return self._nodes[value]
+
 
 class _Node:
+    """
+    A node container for a value with meta data about it's neighbors and weights.
+    """
     def __init__(self, value):
-        self._value = value
+        self.value = value
         self._neighbors = {}
 
     def __repr__(self):
-        return f"{self._value}: {self.get_neighbors()}"
+        return f"{self.value}: {self.get_neighbors()}"
 
-    def add_neighbor(self, neighbor, weight=0):
-        self._neighbors[neighbor] = weight
+    def add_neighbor(self, neighbor_node, weight):
+        self._neighbors[neighbor_node.value] = weight
 
     def get_neighbors(self):
-        return self._neighbors.keys()
-
-    def get_id(self):
-        return self.id
+        return self._neighbors
 
     def get_weight(self, neighbor):
-        return self.adjacent[neighbor]
+        return self._neighbors[neighbor]
 
 
 class SimpleGraphException(Exception):
     pass
-
-
-if __name__ == '__main__':
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
-    g = Graph()
-    g.add_node("A")
-    g.add_node("B")
-
-    g.add_edge("B", "A", 1.0)
-    g.add_edge("A", "B", 1.0)
-
-    logging.info(g)
-
