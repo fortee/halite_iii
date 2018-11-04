@@ -41,7 +41,7 @@ def test_game_map_to_graph(game_map):
     g.add_edge(Position(0, 1), Position(0, 0), 1.5)
 
     g.add_edge(Position(0, 2), Position(1, 2), 2.0)
-    g.add_edge(Position(0, 2), Position(0, 2), 2.0)
+    g.add_edge(Position(0, 2), Position(0, 1), 2.0)
 
     g.add_edge(Position(1, 0), Position(0, 0), 0.5)
     g.add_edge(Position(1, 0), Position(1, 1), 0.5)
@@ -68,4 +68,4 @@ def test_game_map_to_graph(game_map):
 
     game_graph = game_map.to_graph()
 
-    assert g == game_map
+    assert g == game_graph
