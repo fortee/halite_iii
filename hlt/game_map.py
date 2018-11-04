@@ -196,5 +196,12 @@ class GameMap:
             self[Position(cell_x, cell_y)].halite_amount = cell_energy
 
     def to_graph(self):
-        pass
+        """
+        Translate game_map cells to a Graph, where the weight represent the cost of stepping from
+        the node to the neighbor.
+
+        :return: simple_graph.Graph
+        """
+
+        g = Graph()
 
