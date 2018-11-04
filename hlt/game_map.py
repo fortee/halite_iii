@@ -76,6 +76,8 @@ class GameMap:
         self.height = height
         self._cells = cells
 
+        self._graph = None
+
     def __getitem__(self, location):
         """
         Getter for position object or entity objects within the game map
@@ -232,4 +234,14 @@ class GameMap:
 
         toc = time.perf_counter()
         logging.info(f"Translating game_map to graph took dt={toc-tic} seconds.")
+        self._graph = g
         return  g
+
+    def get_cheapest_path(self, src, destination):
+        """
+
+        :param src:
+        :param destination:
+        :return:
+        """
+        pass

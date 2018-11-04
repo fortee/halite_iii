@@ -47,6 +47,7 @@ while True:
     game.update_frame()
     me = game.me
     game_map = game.game_map
+    game_graph = game_map.to_graph()
     my_ships = me.get_ships()
     shipyard = me.shipyard
 

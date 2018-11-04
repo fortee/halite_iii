@@ -43,6 +43,9 @@ class Graph:
 
         return self._nodes[value]
 
+    def get_node_count(self):
+        return self._node_count
+
 
 class _Node:
     """
