@@ -28,6 +28,7 @@ class Game:
         # Changing halite code for logging, as I don't like logs polluting my top-level directory.
         if not os.path.exists('logs'):
             os.makedirs('logs')
+
         logging.basicConfig(
             filename="logs/bot-{}.log".format(self.my_id),
             filemode="w",

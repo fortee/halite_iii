@@ -3,8 +3,10 @@
 
 # Import the Halite SDK, which will let you interact with the game.
 import hlt
+import dijkstra
 import logging
 import random
+import time
 
 from hlt import constants
 from hlt.positionals import Direction, Position
@@ -21,7 +23,7 @@ me = game.me
 
 
 # Ready starts the 2 second clock
-game.ready("Crush_v0.1")
+game.ready("Crush_v0.2")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
 #   Here, you log here your id, which you can always fetch from the game object by using my_id.
@@ -43,6 +45,8 @@ ship_values = {}
 while True:
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
     #   running update_frame().
+
+    tic = time.perf_counter()
     command_queue = []
     game.update_frame()
     me = game.me
@@ -50,6 +54,8 @@ while True:
     game_graph = game_map.to_graph()
     my_ships = me.get_ships()
     shipyard = me.shipyard
+    toc = time.perf_counter()
+    logging.info(f"Turn initialization took {toc-tic} seconds")
 
     log_state(me=me, game_map=game_map)
 
@@ -82,6 +88,7 @@ while True:
             command_queue.append(ship.move(direction))
         elif game_map[ship.position].halite_amount < constants.MAX_HALITE / 10:
             logging.info(f"ship {ship.id} seeking target of {ship_values[ship.id]['target']}")
+            dijkstra.dijkstra(game_graph, ship.position, ship_values[ship.id]["target"])
             direction = game_map.naive_navigate(ship, ship_values[ship.id]['target'])
             command_queue.append(ship.move(direction))
         else:

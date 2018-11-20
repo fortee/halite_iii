@@ -80,3 +80,5 @@ debug_replays/*
 downloads/*
 replays/*
 logs/*
+*.log
+*.hlt

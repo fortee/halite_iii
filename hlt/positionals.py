@@ -1,3 +1,5 @@
+import math
+
 from . import commands
 
 
@@ -79,6 +81,15 @@ class Position:
         :return: Returns a list of all positions around this specific position in each cardinal direction
         """
         return [self.directional_offset(current_direction) for current_direction in Direction.get_all_cardinals()]
+
+    def distance_to(self, other):
+        """
+        Returns L2 norm from self to other.
+
+        :param other: An instance of Position
+        :return: float
+        """
+        return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
 
     def __add__(self, other):
         return Position(self.x + other.x, self.y + other.y)
