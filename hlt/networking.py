@@ -12,7 +12,7 @@ class Game:
     """
     The game object holds all metadata pertinent to the game and all its contents
     """
-    def __init__(self):
+    def __init__(self, log_level=logging.INFO):
         """
         Initiates a game object collecting all start-state instances for the contained items for pre-game.
         Also sets up basic logging.
@@ -32,7 +32,7 @@ class Game:
         logging.basicConfig(
             filename="logs/bot-{}.log".format(self.my_id),
             filemode="w",
-            level=logging.DEBUG,
+            level=log_level,
         )
 
         self.players = {}

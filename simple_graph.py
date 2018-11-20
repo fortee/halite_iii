@@ -32,7 +32,7 @@ class Graph:
             raise SimpleGraphException(f"adding edge from src={src} to dest={dest} required both to exist in graph!")
 
         self._nodes[src].add_neighbor(self._nodes[dest], weight)
-        logging.info(f"Directed edge from src={src} to dest={dest} with weight={weight} added to graph.")
+        logging.debug(f"Directed edge from src={src} to dest={dest} with weight={weight} added to graph.")
 
     def get_nodes(self):
         return self._nodes

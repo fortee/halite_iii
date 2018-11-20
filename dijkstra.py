@@ -1,5 +1,6 @@
 import heapq
 import logging
+import time
 
 
 def dijkstra(graph, src, dest):
@@ -16,10 +17,7 @@ def dijkstra(graph, src, dest):
 
     completed_path_heap = []
     heapq.heapify(completed_path_heap)
-    i = 0
     while path_heap:
-        logging.debug(f"i={i}")
-        i += 1
         path = heapq.heappop(path_heap)
         if completed_path_heap:
             logging.debug(f"Current best path={completed_path_heap[0]}")
@@ -50,6 +48,8 @@ def dijkstra_halite(graph, src, dest, distance_weight):
 
     Note: Works for non-negative weights only!
     """
+    tic = time.perf_counter()
+    logging.info(f"Begin searching path for src={src} dest={dest}")
     nodes = graph.get_nodes()
     initial_distance_cost = src.distance_to(dest) * distance_weight
     path_heap = [_HalitePath(nodes=[src], game_cost=0.0, distance_cost=initial_distance_cost)]
@@ -57,11 +57,12 @@ def dijkstra_halite(graph, src, dest, distance_weight):
 
     completed_path_heap = []
     heapq.heapify(completed_path_heap)
-    i = 0
     while path_heap:
-        logging.debug(f"i={i}")
-        i += 1
         path = heapq.heappop(path_heap)
+        dt = time.perf_counter() - tic
+        if dt >= 0.2:
+            logging.warning(f"Search taking too long, aborting path seeking and going with random path!")
+            return path.nodes[1:]
         if completed_path_heap:
             logging.debug(f"Current best path={completed_path_heap[0]}")
         else:
@@ -69,7 +70,7 @@ def dijkstra_halite(graph, src, dest, distance_weight):
         current = path.nodes[-1]
         if current == dest:
             heapq.heappush(completed_path_heap, path)
-            if len(completed_path_heap) > 100:
+            if len(completed_path_heap) > 1:
                 break
         current_node = nodes[current]
         neighbors = current_node.get_neighbors()
@@ -84,6 +85,8 @@ def dijkstra_halite(graph, src, dest, distance_weight):
             heapq.heappush(path_heap, new_path)
 
     best_path = heapq.heappop(completed_path_heap)
+    toc = time.perf_counter()
+    logging.info(f"Time spent seeking src={src} dest={dest} was dt={toc-tic} seconds")
     return best_path.nodes[1:]
 
 
