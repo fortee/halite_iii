@@ -15,7 +15,7 @@ from random import randint
 """ <<<Game Begin>>> """
 
 # This game object contains the initial game state.
-game = hlt.Game()
+game = hlt.Game(log_level=logging.INFO)
 
 # Do pre-processing here.
 game_map = game.game_map
@@ -29,6 +29,7 @@ game.ready("Crush_v0.2")
 #   Here, you log here your id, which you can always fetch from the game object by using my_id.
 logging.info("Successfully created bot! My Player ID is {}.".format(game.my_id))
 
+TURN_SEC_THRES = 1.8
 
 def log_state(me, game_map):
     logging.info(f"halite_amount={me.halite_amount}")
@@ -46,7 +47,7 @@ while True:
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
     #   running update_frame().
 
-    tic = time.perf_counter()
+    turn_tic = time.perf_counter()
     command_queue = []
     game.update_frame()
     me = game.me
@@ -55,11 +56,16 @@ while True:
     my_ships = me.get_ships()
     shipyard = me.shipyard
     toc = time.perf_counter()
-    logging.info(f"Turn initialization took {toc-tic} seconds")
+    logging.info(f"Turn initialization took {toc-turn_tic} seconds")
 
     log_state(me=me, game_map=game_map)
 
     for ship in my_ships:
+        dt = toc - turn_tic
+        logging.info(f"Time spent on turn so far dt={dt} seconds")
+        if dt >= TURN_SEC_THRES:
+            logging.warning(f"Aborting turn prematurely to avoid timeout")
+            break
         if ship.id not in ship_values:
             ship_values[ship.id] = {
                 'seeking_home': False,
@@ -71,7 +77,14 @@ while True:
             # This ship is now seeking the shipyard and will continue to do so despite the cost!
             ship_values[ship.id]['seeking_home'] = True
             logging.info(f"ship {ship.id} is full, now set to seeking shipyard at {shipyard.position}")
-            direction = game_map.naive_navigate(ship, shipyard.position)
+            path = dijkstra.dijkstra_halite(game_graph, ship.position, shipyard.position, distance_weight=1000)
+            direction = game_map.naive_navigate(ship, path[0])
+            command_queue.append(ship.move(direction))
+        elif not ship_values[ship.id]['seeking_home'] and ship.position == ship_values[ship.id]["target"]:
+            logging.info(f"ship {ship.id} reached target!, now seeking home")
+            ship_values[ship.id]['seeking_home'] = True
+            path = dijkstra.dijkstra_halite(game_graph, ship.position, shipyard.position, distance_weight=1000)
+            direction = game_map.naive_navigate(ship, path[0])
             command_queue.append(ship.move(direction))
         elif ship_values[ship.id]['seeking_home'] and ship.position == shipyard.position:
             logging.info(f"ship {ship.id} has reached the shipyard. No longer seeking it")
@@ -84,12 +97,13 @@ while True:
             command_queue.append(ship.move(direction))
         elif ship_values[ship.id]['seeking_home']:
             logging.info(f"ship {ship.id} is continuing to seek shipyard at {shipyard.position}")
-            direction = game_map.naive_navigate(ship, shipyard.position)
+            path = dijkstra.dijkstra_halite(game_graph, ship.position, shipyard.position, distance_weight=1000)
+            direction = game_map.naive_navigate(ship, path[0])
             command_queue.append(ship.move(direction))
         elif game_map[ship.position].halite_amount < constants.MAX_HALITE / 10:
             logging.info(f"ship {ship.id} seeking target of {ship_values[ship.id]['target']}")
-            dijkstra.dijkstra(game_graph, ship.position, ship_values[ship.id]["target"])
-            direction = game_map.naive_navigate(ship, ship_values[ship.id]['target'])
+            path = dijkstra.dijkstra_halite(game_graph, ship.position, ship_values[ship.id]["target"], distance_weight=1000)
+            direction = game_map.naive_navigate(ship, path[0])
             command_queue.append(ship.move(direction))
         else:
             command_queue.append(ship.stay_still())
