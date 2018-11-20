@@ -211,12 +211,12 @@ class GameMap:
 
         # NB: We're iterating through twice, as simple_graph.Graph requires src and dest nodes to already exist
         # when appending an edge.
-        for c, _ in enumerate(self._cells):
-            for r, cell in enumerate(self._cells[c]):
+        for r, _ in enumerate(self._cells):
+            for c, cell in enumerate(self._cells[r]):
                 g.add_node(cell.position)
 
-        for c, _ in enumerate(self._cells):
-            for r, cell in enumerate(self._cells[c]):
+        for r, _ in enumerate(self._cells):
+            for c, cell in enumerate(self._cells[r]):
                 src = Position(c, r)
                 cost = cell.halite_amount / 10.0
                 # c-1, r+0
@@ -235,7 +235,7 @@ class GameMap:
         toc = time.perf_counter()
         logging.info(f"Translating game_map to graph took dt={toc-tic} seconds.")
         self._graph = g
-        return  g
+        return g
 
     def get_cheapest_path(self, src, destination):
         """

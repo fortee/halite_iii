@@ -31,15 +31,15 @@ def test_eq():
     g.add_edge("C", "B", -1.0)
     g.add_edge("B", "C", 5.0)
 
-    # Construct in different order
+    # Construct in different order, both keys and values for a given key (B->C, B->A, in this case)
     h = Graph()
     h.add_node("C")
     h.add_node("A")
     h.add_node("B")
 
     h.add_edge("A", "B", 2.0)
-    h.add_edge("B", "A", 1.0)
     h.add_edge("B", "C", 5.0)
+    h.add_edge("B", "A", 1.0)
     h.add_edge("C", "B", -1.0)
 
     assert g == h

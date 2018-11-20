@@ -1,6 +1,29 @@
 import dijkstra
+import pickle
+import pytest
 
+from hlt.positionals import Position
 from simple_graph import Graph
+
+
+@pytest.fixture
+def game_map():
+    """
+    Fetch pickled game_map, which was saved via a debugger while playing Halite
+    :return:
+    """
+
+    with open("./resources/game_map.pickle", 'rb') as fp:
+        unpickler = pickle.Unpickler(fp)
+        gmap = unpickler.load()
+
+    return gmap
+
+
+@pytest.fixture
+def game_graph(game_map):
+    graph = game_map.to_graph()
+    return graph
 
 
 def test_dijkstra_simple_case():
@@ -76,3 +99,11 @@ def test_dijkstra_simple_with_negative_costs():
     path = dijkstra.dijkstra(g, "A", "D")
 
     assert ["B", "C", "D"] == path
+
+
+def test_dijstra_halite(game_graph):
+    print("Search for path start")
+    path = dijkstra.dijkstra_halite(game_graph, Position(8, 16), Position(23, 4), distance_weight=1000.0)
+
+    print(path)
+
