@@ -142,52 +142,18 @@ class GameMap:
 
         return (x_dir, y_dir)
 
-    def get_unsafe_moves(self, source, destination):
-        """
-        Return the Direction(s) to move closer to the target point, or empty if the points are the same.
-        This move mechanic does not account for collisions. The multiple directions are if both directional movements
-        are viable.
-        :param source: The starting position
-        :param destination: The destination towards which you wish to move your object.
-        :return: A list of valid (closest) Directions towards your target.
-        """
-        source = self.normalize(source)
-        destination = self.normalize(destination)
-        possible_moves = []
-        distance = abs(destination - source)
-        y_cardinality, x_cardinality = self._get_target_direction(source, destination)
-
-        if distance.x != 0:
-            possible_moves.append(x_cardinality if distance.x < (self.width / 2)
-                                  else Direction.invert(x_cardinality))
-        if distance.y != 0:
-            possible_moves.append(y_cardinality if distance.y < (self.height / 2)
-                                  else Direction.invert(y_cardinality))
-        return possible_moves
-
-    def naive_navigate(self, ship, destination):
-        """
-        Returns a singular safe move towards the destination.
-
-        :param ship: The ship to move.
-        :param destination: Ending position
-        :return: A direction.
-        """
-        # No need to normalize destination, since get_unsafe_moves
-        # does that
-        unsafe_moves = self.get_unsafe_moves(ship.position, destination)
-        logging.info(f"ship {ship.id} has unsafe_moves={unsafe_moves}")
-        for direction in unsafe_moves:
-            logging.info(f"ship {ship.id} considering direction {direction}")
-            target_pos = ship.position.directional_offset(direction)
-            if not self[target_pos].is_occupied:
-                self[target_pos].mark_unsafe(ship)
-                return direction
-
-        logging.info(f"ship {ship.id} has exhaused all directions")
-        return Direction.Still
-
     def safe_step(self, ship, path, game_graph):
+        """
+        takes a "safe step" along the defined path.
+
+        TODO:
+         - Should this be part of the hlt code?
+         - Do we need to keep additional context in
+        :param ship:
+        :param path:
+        :param game_graph:
+        :return:
+        """
         # First try the path[0], if it's occupied, pick a random neighbor
         preferred_direction = self._get_target_direction(ship.position, path[0])
         directions = [Direction.North, Direction.South, Direction.East, Direction.West]
