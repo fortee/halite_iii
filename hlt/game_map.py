@@ -1,5 +1,6 @@
 import queue
 import logging
+import random
 import time
 
 from . import constants
@@ -125,8 +126,21 @@ class GameMap:
         :param target: The target position
         :return: A tuple containing the target Direction. A tuple item (or both) could be None if within same coords
         """
-        return (Direction.South if target.y > source.y else Direction.North if target.y < source.y else None,
-                Direction.East if target.x > source.x else Direction.West if target.x < source.x else None)
+        if target.y > source.y:
+            y_dir = 1 # down / south
+        elif target.y < source.y:
+            y_dir = -1 # up / north
+        else:
+            y_dir = 0 # no y component of movement
+
+        if target.x > source.x:
+            x_dir = 1 # right / east
+        elif target.x < source.x:
+            x_dir = -1 # left / I thought you said "weast"!
+        else:
+            x_dir = 0 # noxy component of movement
+
+        return (x_dir, y_dir)
 
     def get_unsafe_moves(self, source, destination):
         """
@@ -161,12 +175,31 @@ class GameMap:
         """
         # No need to normalize destination, since get_unsafe_moves
         # does that
-        for direction in self.get_unsafe_moves(ship.position, destination):
+        unsafe_moves = self.get_unsafe_moves(ship.position, destination)
+        logging.info(f"ship {ship.id} has unsafe_moves={unsafe_moves}")
+        for direction in unsafe_moves:
+            logging.info(f"ship {ship.id} considering direction {direction}")
             target_pos = ship.position.directional_offset(direction)
             if not self[target_pos].is_occupied:
                 self[target_pos].mark_unsafe(ship)
                 return direction
 
+        logging.info(f"ship {ship.id} has exhaused all directions")
+        return Direction.Still
+
+    def safe_step(self, ship, path, game_graph):
+        # First try the path[0], if it's occupied, pick a random neighbor
+        preferred_direction = self._get_target_direction(ship.position, path[0])
+        directions = [Direction.North, Direction.South, Direction.East, Direction.West]
+        random.shuffle(directions)
+        directions = [preferred_direction] + directions  # TODO: R. Sokoloski - Remove dupe
+        for direction in directions:
+            target_pos = ship.position.directional_offset(direction)
+            if not self[target_pos].is_occupied:
+                self[target_pos].mark_unsafe(ship)
+                return direction
+
+        logging.info(f"safe_step for ship {ship.id} as exhaused all directions, staying still")
         return Direction.Still
 
     @staticmethod
