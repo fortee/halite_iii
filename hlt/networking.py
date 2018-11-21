@@ -34,6 +34,7 @@ class Game:
             filemode="w",
             level=log_level,
         )
+        logging.info("Logs configured!")
 
         self.players = {}
         for player in range(num_players):
