@@ -25,17 +25,6 @@ class Game:
 
         num_players, self.my_id = map(int, read_input().split())
 
-        # Changing halite code for logging, as I don't like logs polluting my top-level directory.
-        if not os.path.exists('logs'):
-            os.makedirs('logs')
-
-        logging.basicConfig(
-            filename="logs/bot-{}.log".format(self.my_id),
-            filemode="w",
-            level=log_level,
-        )
-        logging.info("Logs configured!")
-
         self.players = {}
         for player in range(num_players):
             self.players[player] = Player._generate()
