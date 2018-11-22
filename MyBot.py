@@ -23,7 +23,7 @@ def configure_logs(bot_id, log_level=logging.INFO):
 # NB: No `if __name__ ...` business here to we don't have to duplicate logic in DebugMyBot.py. Should be OK since we're
 # not importing this module anywhere.
 game = hlt.Game()
-manager = HaliteManager()
+manager = HaliteManager(game=game)
 configure_logs(bot_id=game.my_id, log_level=logging.INFO)
 
 crush = Crush(game=game, manager=manager)

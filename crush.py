@@ -3,7 +3,7 @@ import logging
 import random
 import time
 
-from context import ShipAssignment, ShipContext
+from context import ShipAssignment, ShipContext, ResourceFocus
 from exceptions import HaliteTimeoutInterrupt
 from hlt import constants, Game, Position
 from hlt.game_map import GameMap
@@ -13,8 +13,8 @@ from simple_graph import Graph
 from typing import Dict, List
 
 
-NAME = "Crush-v0.4"
-DISTANCE_WEIGHT = 500.0
+NAME = "Crush-v0.5"
+DIJKSTRA_DISTANCE_WEIGHT = 500.0
 
 
 class Crush:
@@ -25,14 +25,19 @@ class Crush:
                  game: Game,
                  manager: HaliteManager,
                  name: str = NAME,
-                 distance_weight: float = DISTANCE_WEIGHT
+                 distance_weight: float = DIJKSTRA_DISTANCE_WEIGHT
                  ):
         self._game: Game = game
         self._manager: HaliteManager = manager
         self._name: str = name
         self._distance_weight: float = distance_weight
 
+        # Mutable fields
         self._ships_context: Dict[int, ShipContext] = {}
+        self._resource_focus: ResourceFocus = None
+
+        # NB: These are redundant fields unpacked from game state, not sure I love this.
+        self._game_map: GameMap = None
 
     def run(self) -> None:
         self._initialize()
@@ -80,7 +85,7 @@ class Crush:
         return g
 
     @staticmethod
-    def _should_step(game_map: GameMap, ship: Ship, path: List[Position]):
+    def _should_step(game_map: GameMap, ship: Ship, path: List[Position]) -> bool:
         if ship.is_full:
             return True
 
@@ -88,6 +93,32 @@ class Crush:
         reward_step = (0.25 * game_map[path[0]].halite_amount) - (0.10 * game_map[ship.position].halite_amount)
         if reward_step >= reward_stay:
             return True
+
+        return False
+
+    def _should_spawn_ship(self, spawn_cost=1000) -> bool:
+        me = self._game.me
+        if self._resource_focus != ResourceFocus.SPAWN_SHIPS or self._game_map[me.shipyard].is_occupied:
+            return False
+
+        turn = self._game.turn_number
+        halite = self._game.me.halite_amount
+
+        # Start game, always spawn
+        if turn <= 50:
+            if halite >= spawn_cost:
+                logging.info(f"Will spawn ship! Start game strategy turn={turn}, cost={spawn_cost}")
+                return True
+        else:
+            n_ships = len(self._game.me.get_ships())
+            remaining = self._manager.total_turns - turn
+
+            mean_halite_per_turn_per_ship = (halite / turn / n_ships) if turn > 0 and n_ships > 0 else 0.0
+            expected_reward = remaining * mean_halite_per_turn_per_ship
+
+            if halite > spawn_cost and expected_reward > spawn_cost:
+                logging.info(f"Will spawn ship! cost={spawn_cost}, expected_reward={expected_reward}")
+                return True
 
         return False
 
@@ -101,6 +132,7 @@ class Crush:
     def _initialize(self) -> None:
         logging.info("Crush initializing!")
         random.seed(int(time.time()))
+        self._resource_focus = ResourceFocus.SPAWN_SHIPS
 
     def _mark_ready(self) -> None:
         logging.info("Crush reporting as ready!")
@@ -111,16 +143,24 @@ class Crush:
         command_queue: List = []
 
         try:
+            # Begin turn business logic
+
             self._game.update_frame()
+            self._manager.log_stats(self._game)
+
+            self._game_map = self._game.game_map
+            game_graph = self._game_map_to_graph(self._game_map)
             me = self._game.me
-            game_map = self._game.game_map
-            game_graph = self._game_map_to_graph(game_map)
             my_ships = me.get_ships()
             shipyard = me.shipyard
             self._manager.clock_check(checkpoint_name="turn initialization complete")
 
+            if self._should_spawn_ship():
+                command_queue.append(me.shipyard.spawn())
+
             # NB: For now all ships are COLLECTORS
             for ship in my_ships:
+
                 self._manager.clock_check(checkpoint_name=f"begin ship={ship.id}")
 
                 if ship.id not in self._ships_context:
@@ -139,12 +179,12 @@ class Crush:
                     ship_context.assignment = ShipAssignment.DROPOFF
                     ship_context.destination = shipyard.position
 
-                # If we're currenting COLLECTING and we've reached our destination, change
+                # If we're currently COLLECTING and we've reached our destination, change
                 if ship_context.assignment == ShipAssignment.COLLECT and ship.position == ship_context.destination:
                     ship_context.assignment = ShipAssignment.DROPOFF
                     ship_context.destination = shipyard.position
 
-                # If we're currenting dropping off, and we've reached our destination, give new assignment
+                # If we're currently dropping off, and we've reached our destination, give new assignment
                 if ship_context.assignment == ShipAssignment.DROPOFF and ship.position == ship_context.destination:
                     ship_context.assignment = ShipAssignment.COLLECT
                     ship_context.destination = self._assign_target(self._game.game_map)
@@ -153,7 +193,7 @@ class Crush:
                     graph=game_graph, src=ship.position, dest=ship_context.destination, distance_weight=self._distance_weight
                 )
 
-                if self._should_step(game_map=game_map, ship=ship, path=path):
+                if self._should_step(game_map=self._game_map, ship=ship, path=path):
                     direction = self._game.game_map.safe_step(
                         ship=ship, path=path, game_graph=game_graph
                     )
@@ -161,11 +201,7 @@ class Crush:
                 else:
                     command_queue.append(ship.stay_still())
 
-            # If the game is in the first 200 turns and you have enough halite, spawn a ship.
-            # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-            if self._game.turn_number <= 200 and me.halite_amount >= constants.SHIP_COST and not game_map[
-                me.shipyard].is_occupied:
-                command_queue.append(me.shipyard.spawn())
+
 
         except HaliteTimeoutInterrupt as timeout_ex:
             logging.warning(f"HaliteTimeoutInterrupt caught! exception={timeout_ex}")

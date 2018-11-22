@@ -1,6 +1,8 @@
 from .entity import Shipyard, Ship, Dropoff
 from .positionals import Position
 from .common import read_input
+from typing import List
+
 
 class Player:
     """
@@ -13,7 +15,7 @@ class Player:
         self._ships = {}
         self._dropoffs = {}
 
-    def get_ship(self, ship_id):
+    def get_ship(self, ship_id) -> Ship:
         """
         Returns a singular ship mapped by the ship id
         :param ship_id: The ship id of the ship you wish to return
@@ -21,13 +23,13 @@ class Player:
         """
         return self._ships[ship_id]
 
-    def get_ships(self):
+    def get_ships(self) -> List[Ship]:
         """
         :return: Returns all ship objects in a list
         """
         return list(self._ships.values())
 
-    def get_dropoff(self, dropoff_id):
+    def get_dropoff(self, dropoff_id) -> Dropoff:
         """
         Returns a singular dropoff mapped by its id
         :param dropoff_id: The dropoff id to return
@@ -35,13 +37,13 @@ class Player:
         """
         return self._dropoffs[dropoff_id]
 
-    def get_dropoffs(self):
+    def get_dropoffs(self) -> List[Dropoff]:
         """
         :return: Returns all dropoff objects in a list
         """
         return list(self._dropoffs.values())
 
-    def has_ship(self, ship_id):
+    def has_ship(self, ship_id) -> bool:
         """
         Check whether the player has a ship with a given ID.
 
