@@ -13,8 +13,12 @@ from simple_graph import Graph
 from typing import Dict, List
 
 
-NAME = "Crush-v0.5"
-DIJKSTRA_DISTANCE_WEIGHT = 500.0
+_NAME = "Crush-v0.6"
+_DIJKSTRA_DISTANCE_WEIGHT = 500.0
+
+SPAWN_COST = 1000
+BUILD_DROPOFF_COST = 4000
+STARTING_HALITE = 5000
 
 
 class Crush:
@@ -24,8 +28,8 @@ class Crush:
     def __init__(self,
                  game: Game,
                  manager: HaliteManager,
-                 name: str = NAME,
-                 distance_weight: float = DIJKSTRA_DISTANCE_WEIGHT
+                 name: str = _NAME,
+                 distance_weight: float = _DIJKSTRA_DISTANCE_WEIGHT
                  ):
         self._game: Game = game
         self._manager: HaliteManager = manager
@@ -35,6 +39,7 @@ class Crush:
         # Mutable fields
         self._ships_context: Dict[int, ShipContext] = {}
         self._resource_focus: ResourceFocus = None
+        self._halite_spent: int = 0
 
         # NB: These are redundant fields unpacked from game state, not sure I love this.
         self._game_map: GameMap = None
@@ -96,28 +101,29 @@ class Crush:
 
         return False
 
-    def _should_spawn_ship(self, spawn_cost=1000) -> bool:
+    def _should_spawn_ship(self) -> bool:
         me = self._game.me
         if self._resource_focus != ResourceFocus.SPAWN_SHIPS or self._game_map[me.shipyard].is_occupied:
             return False
 
         turn = self._game.turn_number
-        halite = self._game.me.halite_amount
+        current_halite = self._game.me.halite_amount
+        total_collected_halite = current_halite + self._halite_spent - STARTING_HALITE
 
         # Start game, always spawn
         if turn <= 50:
-            if halite >= spawn_cost:
-                logging.info(f"Will spawn ship! Start game strategy turn={turn}, cost={spawn_cost}")
+            if current_halite >= SPAWN_COST:
+                logging.info(f"Will spawn ship! Start game strategy turn={turn}, cost={SPAWN_COST}")
                 return True
         else:
             n_ships = len(self._game.me.get_ships())
             remaining = self._manager.total_turns - turn
 
-            mean_halite_per_turn_per_ship = (halite / turn / n_ships) if turn > 0 and n_ships > 0 else 0.0
+            mean_halite_per_turn_per_ship = (total_collected_halite / turn / n_ships) if turn > 0 and n_ships > 0 else 0.0
             expected_reward = remaining * mean_halite_per_turn_per_ship
 
-            if halite > spawn_cost and expected_reward > spawn_cost:
-                logging.info(f"Will spawn ship! cost={spawn_cost}, expected_reward={expected_reward}")
+            if current_halite > SPAWN_COST and expected_reward > SPAWN_COST:
+                logging.info(f"Will spawn ship! turn={turn}, expected_reward={expected_reward}, mean_halite_per_turn_per_ship={mean_halite_per_turn_per_ship}")
                 return True
 
         return False
@@ -156,7 +162,9 @@ class Crush:
             self._manager.clock_check(checkpoint_name="turn initialization complete")
 
             if self._should_spawn_ship():
+                self._halite_spent += SPAWN_COST
                 command_queue.append(me.shipyard.spawn())
+
 
             # NB: For now all ships are COLLECTORS
             for ship in my_ships:
