@@ -2,6 +2,10 @@ import heapq
 import logging
 import time
 
+from hlt.game_map import Position
+from simple_graph import Graph
+from typing import List
+
 
 def dijkstra(graph, src, dest):
     """
@@ -41,7 +45,7 @@ def dijkstra(graph, src, dest):
     return best_path.nodes[1:]
 
 
-def dijkstra_halite(graph, src, dest, distance_weight):
+def dijkstra_halite(graph: Graph, src: Position, dest: Position, distance_weight) -> List:
     """
     Halite-specific variant of dijkstra, general didn't work, since it spent a bunch fo time searching paths completely
     in the wrong direction.

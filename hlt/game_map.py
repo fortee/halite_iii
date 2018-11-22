@@ -79,7 +79,7 @@ class GameMap:
 
         self._graph = None
 
-    def __getitem__(self, location):
+    def __getitem__(self, location) -> MapCell:
         """
         Getter for position object or entity objects within the game map
         :param location: the position or entity to access in this map
@@ -142,52 +142,18 @@ class GameMap:
 
         return (x_dir, y_dir)
 
-    def get_unsafe_moves(self, source, destination):
+    def safe_step(self, ship, path, game_graph) -> Direction:
         """
-        Return the Direction(s) to move closer to the target point, or empty if the points are the same.
-        This move mechanic does not account for collisions. The multiple directions are if both directional movements
-        are viable.
-        :param source: The starting position
-        :param destination: The destination towards which you wish to move your object.
-        :return: A list of valid (closest) Directions towards your target.
+        takes a "safe step" along the defined path.
+
+        TODO:
+         - Should this be part of the hlt code?
+         - Do we need to keep additional context in
+        :param ship:
+        :param path:
+        :param game_graph:
+        :return:
         """
-        source = self.normalize(source)
-        destination = self.normalize(destination)
-        possible_moves = []
-        distance = abs(destination - source)
-        y_cardinality, x_cardinality = self._get_target_direction(source, destination)
-
-        if distance.x != 0:
-            possible_moves.append(x_cardinality if distance.x < (self.width / 2)
-                                  else Direction.invert(x_cardinality))
-        if distance.y != 0:
-            possible_moves.append(y_cardinality if distance.y < (self.height / 2)
-                                  else Direction.invert(y_cardinality))
-        return possible_moves
-
-    def naive_navigate(self, ship, destination):
-        """
-        Returns a singular safe move towards the destination.
-
-        :param ship: The ship to move.
-        :param destination: Ending position
-        :return: A direction.
-        """
-        # No need to normalize destination, since get_unsafe_moves
-        # does that
-        unsafe_moves = self.get_unsafe_moves(ship.position, destination)
-        logging.info(f"ship {ship.id} has unsafe_moves={unsafe_moves}")
-        for direction in unsafe_moves:
-            logging.info(f"ship {ship.id} considering direction {direction}")
-            target_pos = ship.position.directional_offset(direction)
-            if not self[target_pos].is_occupied:
-                self[target_pos].mark_unsafe(ship)
-                return direction
-
-        logging.info(f"ship {ship.id} has exhaused all directions")
-        return Direction.Still
-
-    def safe_step(self, ship, path, game_graph):
         # First try the path[0], if it's occupied, pick a random neighbor
         preferred_direction = self._get_target_direction(ship.position, path[0])
         directions = [Direction.North, Direction.South, Direction.East, Direction.West]
@@ -231,44 +197,6 @@ class GameMap:
         for _ in range(int(read_input())):
             cell_x, cell_y, cell_energy = map(int, read_input().split())
             self[Position(cell_x, cell_y)].halite_amount = cell_energy
-
-    def to_graph(self):
-        """
-        Translate game_map cells to a Graph, where the weight represent the cost of stepping from
-        the node to the neighbor.
-
-        :return: simple_graph.Graph
-        """
-        tic = time.perf_counter()
-        g = Graph()
-
-        # NB: We're iterating through twice, as simple_graph.Graph requires src and dest nodes to already exist
-        # when appending an edge.
-        for r, _ in enumerate(self._cells):
-            for c, cell in enumerate(self._cells[r]):
-                g.add_node(cell.position)
-
-        for r, _ in enumerate(self._cells):
-            for c, cell in enumerate(self._cells[r]):
-                src = Position(c, r)
-                cost = cell.halite_amount / 10.0
-                # c-1, r+0
-                if c-1 >= 0 and c-1 < self.height:
-                    g.add_edge(src, Position(c-1, r), cost)
-                # c+0, r+1
-                if r+1 >= 0 and r+1 < self.width:
-                    g.add_edge(src, Position(c, r+1), cost)
-                # c+1, r+0
-                if c+1 >= 0 and c+1 < self.height:
-                    g.add_edge(src, Position(c+1, r), cost)
-                # c+0, r-1
-                if r-1 >= 0 and r-1 < self.width:
-                    g.add_edge(src, Position(c, r-1), cost)
-
-        toc = time.perf_counter()
-        logging.info(f"Translating game_map to graph took dt={toc-tic} seconds.")
-        self._graph = g
-        return g
 
     def get_cheapest_path(self, src, destination):
         """

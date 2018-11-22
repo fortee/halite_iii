@@ -8,7 +8,7 @@ class Player:
     """
     def __init__(self, player_id, shipyard, halite=0):
         self.id = player_id
-        self.shipyard = shipyard
+        self.shipyard: Shipyard = shipyard
         self.halite_amount = halite
         self._ships = {}
         self._dropoffs = {}
