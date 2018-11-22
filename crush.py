@@ -13,7 +13,7 @@ from simple_graph import Graph
 from typing import Dict, List
 
 
-_NAME = "Crush-v0.5"
+_NAME = "Crush-v0.6"
 _DIJKSTRA_DISTANCE_WEIGHT = 500.0
 
 SPAWN_COST = 1000
