@@ -20,8 +20,8 @@ def configure_logs(bot_id, log_level=logging.INFO):
     )
 
 
-# NB: I normally do the usual `if __name__ == '__main__'` thing here but that would make DebugMyBot.py a little bit
-# cumbersome, so we just can't import MyBot.py anywhere, which should be OK.
+# NB: No `if __name__ ...` business here to we don't have to duplicate logic in DebugMyBot.py. Should be OK since we're
+# not importing this module anywhere.
 game = hlt.Game()
 manager = HaliteManager()
 configure_logs(bot_id=game.my_id, log_level=logging.INFO)
