@@ -14,7 +14,7 @@ from typing import Dict, List
 
 
 NAME = "Crush-v0.4"
-DISTANCE_WEIGHT = 100.0
+DISTANCE_WEIGHT = 500.0
 
 
 class Crush:
@@ -84,7 +84,9 @@ class Crush:
         if ship.is_full:
             return True
 
-        if 0.10 * game_map[ship.position].halite_amount <= 0.25 * game_map[path[0]].halite_amount:
+        reward_stay = 0.25 * game_map[ship.position].halite_amount
+        reward_step = (0.25 * game_map[path[0]].halite_amount) - (0.10 * game_map[ship.position].halite_amount)
+        if reward_step >= reward_stay:
             return True
 
         return False
