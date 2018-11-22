@@ -79,7 +79,7 @@ class GameMap:
 
         self._graph = None
 
-    def __getitem__(self, location):
+    def __getitem__(self, location) -> MapCell:
         """
         Getter for position object or entity objects within the game map
         :param location: the position or entity to access in this map
@@ -142,7 +142,7 @@ class GameMap:
 
         return (x_dir, y_dir)
 
-    def safe_step(self, ship, path, game_graph):
+    def safe_step(self, ship, path, game_graph) -> Direction:
         """
         takes a "safe step" along the defined path.
 

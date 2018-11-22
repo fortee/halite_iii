@@ -1,17 +1,20 @@
 import dijkstra
 import logging
+import random
 import time
 
-from context import ShipContext
+from context import ShipAssignment, ShipContext
 from exceptions import HaliteTimeoutInterrupt
 from hlt import constants, Game, Position
 from hlt.game_map import GameMap
+from hlt.entity import Ship
 from management import HaliteManager
 from simple_graph import Graph
 from typing import Dict, List
 
 
 NAME = "Crush-v0.4"
+DISTANCE_WEIGHT = 100.0
 
 
 class Crush:
@@ -22,19 +25,28 @@ class Crush:
                  game: Game,
                  manager: HaliteManager,
                  name: str = NAME,
+                 distance_weight: float = DISTANCE_WEIGHT
                  ):
         self._game: Game = game
         self._manager: HaliteManager = manager
         self._name: str = name
+        self._distance_weight: float = distance_weight
 
         self._ships_context: Dict[int, ShipContext] = {}
 
+    def run(self) -> None:
+        self._initialize()
+        self._mark_ready()
+
+        while True:
+            self._turn()
+
     @staticmethod
-    def _game_map_to_graph(game_map: GameMap) -> Graph():
+    def _game_map_to_graph(game_map: GameMap) -> Graph:
         """
         Translate game_map cells to a Graph, where the weight represent the cost of stepping from
         the node to the neighbor.
-        
+
         NB: This method bothers me a bit since we're "reaching into" the private field `_cells` of the `game_map` obj,
         but I opt'ed to leave the `hlt` package code alone
 
@@ -67,25 +79,36 @@ class Crush:
 
         return g
 
-    def run(self) -> None:
-        self._initialize()
-        self._mark_ready()
+    @staticmethod
+    def _should_step(game_map: GameMap, ship: Ship, path: List[Position]):
+        if ship.is_full:
+            return True
 
-        while True:
-            self._turn()
+        if 0.10 * game_map[ship.position].halite_amount <= 0.25 * game_map[path[0]].halite_amount:
+            return True
+
+        return False
+
+    @staticmethod
+    def _assign_target(game_map: GameMap) -> Position:
+        x = random.randint(0, game_map.width)
+        y = random.randint(0, game_map.height)
+
+        return Position(x=x, y=y)
 
     def _initialize(self) -> None:
         logging.info("Crush initializing!")
+        random.seed(int(time.time()))
 
     def _mark_ready(self) -> None:
         logging.info("Crush reporting as ready!")
         self._game.ready(self._name)
 
     def _turn(self):
+        self._manager.mark_turn(turn_number=self._game.turn_number)
         command_queue: List = []
 
         try:
-            self._manager.mark_turn(turn_number=self._game.turn_number)
             self._game.update_frame()
             me = self._game.me
             game_map = self._game.game_map
@@ -102,45 +125,39 @@ class Crush:
                     logging.info(f"Initializing ship context for ship={ship.id}")
                     self._ships_context[ship.id] = ShipContext()
 
+                ship_context = self._ships_context[ship.id]
 
+                # Give assignement to unassigned ships
+                if ship_context.assignment == ShipAssignment.UNASSIGNED:
+                    ship_context.assignment = ShipAssignment.COLLECT
+                    ship_context.destination = self._assign_target(self._game.game_map)
 
-                # if ship.is_full and not ships_context[ship.id]['seeking_home']:
-                #     # This ship is now seeking the shipyard and will continue to do so despite the cost!
-                #     ships_context[ship.id]['seeking_home'] = True
-                #     logging.info(f"ship {ship.id} is full, now set to seeking shipyard at {shipyard.position}")
-                #     path = dijkstra.dijkstra_halite(game_graph, ship.position, shipyard.position, distance_weight=1000)
-                #     direction = game_map.safe_step(ship=ship, path=path, game_graph=game_graph)
-                #     command_queue.append(ship.move(direction))
-                # elif not ships_context[ship.id]. and ship.position == ships_context[ship.id]["target"]:
-                #     logging.info(f"ship {ship.id} reached target!, now seeking home")
-                #     ships_context[ship.id]['seeking_home'] = True
-                #     path = dijkstra.dijkstra_halite(game_graph, ship.position, shipyard.position,
-                #                                     distance_weight=1000)
-                #     direction = game_map.safe_step(ship=ship, path=path, game_graph=game_graph)
-                #     command_queue.append(ship.move(direction))
-                # elif ships_context[ship.id]['seeking_home'] and ship.position == shipyard.position:
-                #     logging.info(f"ship {ship.id} has reached the shipyard. No longer seeking it")
-                #     ships_context[ship.id]['seeking_home'] = False
-                #     ships_context[ship.id]['target'] = assign_target(game_map=game_map)
-                #     logging.info(f"ship {ship.id} seeking target of {ships_context[ship.id]['target']}")
-                #     path = dijkstra.dijkstra_halite(game_graph, ship.position, ships_context[ship.id]["target"],
-                #                                     distance_weight=1000)
-                #     direction = game_map.safe_step(ship=ship, path=path, game_graph=game_graph)
-                #     command_queue.append(ship.move(direction))
-                # elif ships_context[ship.id]['seeking_home']:
-                #     logging.info(f"ship {ship.id} is continuing to seek shipyard at {shipyard.position}")
-                #     path = dijkstra.dijkstra_halite(game_graph, ship.position, shipyard.position,
-                #                                     distance_weight=1000)
-                #     direction = game_map.safe_step(ship=ship, path=path, game_graph=game_graph)
-                #     command_queue.append(ship.move(direction))
-                # elif game_map[ship.position].halite_amount < constants.MAX_HALITE / 10:
-                #     logging.info(f"ship {ship.id} seeking target of {ships_context[ship.id]['target']}")
-                #     path = dijkstra.dijkstra_halite(game_graph, ship.position, ships_context[ship.id]["target"],
-                #                                     distance_weight=1000)
-                #     direction = game_map.safe_step(ship=ship, path=path, game_graph=game_graph)
-                #     command_queue.append(ship.move(direction))
-                # else:
-                #     command_queue.append(ship.stay_still())
+                # If we're full, change assignment
+                if ship.is_full:
+                    ship_context.assignment = ShipAssignment.DROPOFF
+                    ship_context.destination = shipyard.position
+
+                # If we're currenting COLLECTING and we've reached our destination, change
+                if ship_context.assignment == ShipAssignment.COLLECT and ship.position == ship_context.destination:
+                    ship_context.assignment = ShipAssignment.DROPOFF
+                    ship_context.destination = shipyard.position
+
+                # If we're currenting dropping off, and we've reached our destination, give new assignment
+                if ship_context.assignment == ShipAssignment.DROPOFF and ship.position == ship_context.destination:
+                    ship_context.assignment = ShipAssignment.COLLECT
+                    ship_context.destination = self._assign_target(self._game.game_map)
+
+                path = dijkstra.dijkstra_halite(
+                    graph=game_graph, src=ship.position, dest=ship_context.destination, distance_weight=self._distance_weight
+                )
+
+                if self._should_step(game_map=game_map, ship=ship, path=path):
+                    direction = self._game.game_map.safe_step(
+                        ship=ship, path=path, game_graph=game_graph
+                    )
+                    command_queue.append(ship.move(direction))
+                else:
+                    command_queue.append(ship.stay_still())
 
             # If the game is in the first 200 turns and you have enough halite, spawn a ship.
             # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
@@ -152,4 +169,5 @@ class Crush:
             logging.warning(f"HaliteTimeoutInterrupt caught! exception={timeout_ex}")
 
         finally:
+            self._manager.clock_check(checkpoint_name="submit command queue")
             self._game.end_turn(command_queue)
